@@ -1,5 +1,6 @@
 ## Interface: 120001
 ## Title: Sounds4Stuff
+## Version: 1.0.2
 ## Notes: Plays a sound for stuff.
 ## Author: Odios01
 ## SavedVariables: Sounds4StuffDB
