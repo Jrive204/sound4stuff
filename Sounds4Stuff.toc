@@ -1,0 +1,8 @@
+## Interface: 120001
+## Title: Sounds4Stuff
+## Notes: Plays a sound for stuff.
+## Author: Odios01
+## SavedVariables: Sounds4StuffDB
+## IconTexture: Interface\Icons\INV_Jewelry_TrinketPVP_01
+
+Sounds4Stuff.lua
