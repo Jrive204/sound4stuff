@@ -2,6 +2,7 @@ local frame = CreateFrame("Frame")
 local trinketOnCD = false
 local potionOnCD = false
 local trackedItemID = nil
+local ignoreNextPotDing = false
 
 local soundList = {
     { name = "Raid Warning", id = 567397 },
@@ -25,6 +26,7 @@ end
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 frame:RegisterEvent("BAG_UPDATE_COOLDOWN")
+frame:RegisterEvent("ENCOUNTER_END") -- Added to detect boss kills
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
@@ -41,6 +43,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
             self:BuildMenu()
         end
 
+    elseif event == "ENCOUNTER_END" then
+        -- Boss died or fight wiped; set flag to ignore the automatic potion reset ding
+        ignoreNextPotDing = true
+
     elseif event == "SPELL_UPDATE_COOLDOWN" or event == "BAG_UPDATE_COOLDOWN" then
         if not Sounds4StuffDB then return end
 
@@ -54,7 +60,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
         elseif trinketOnCD and tDuration <= 1.5 then
             trinketOnCD = false
             if currentItemID == trackedItemID then
-                -- Check if player is alive AND in combat before making noise
                 if UnitAffectingCombat("player") and not UnitIsDeadOrGhost("player") then
                     PlayDingSound(Sounds4StuffDB.trinketSound)
                     if Sounds4StuffDB.chatAlert then print("|cff00ff00[Sounds4Stuff]|r Trinket Ready!") end
@@ -69,18 +74,24 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
             if pStart > 0 and pDuration > 1.5 then
                 potionOnCD = true
+                ignoreNextPotDing = false -- Reset flag if we actually use a pot mid-fight
             elseif potionOnCD and pDuration <= 1.5 then
                 potionOnCD = false
-                -- Check if player is alive AND in combat before making noise
-                if UnitAffectingCombat("player") and not UnitIsDeadOrGhost("player") then
-                    PlayDingSound(Sounds4StuffDB.potionSound)
-                    if Sounds4StuffDB.chatAlert then print("|cff00ff00[Sounds4Stuff]|r Combat Potion Ready!") end
+
+                -- Only ding if we aren't supposed to ignore this specific reset (boss kill)
+                if not ignoreNextPotDing then
+                    if UnitAffectingCombat("player") and not UnitIsDeadOrGhost("player") then
+                        PlayDingSound(Sounds4StuffDB.potionSound)
+                        if Sounds4StuffDB.chatAlert then print("|cff00ff00[Sounds4Stuff]|r Combat Potion Ready!") end
+                    end
                 end
+                ignoreNextPotDing = false -- Reset for next use
             end
         end
     end
 end)
 
+-- Menu
 function frame:BuildMenu()
     local panel = CreateFrame("Frame", "Sounds4StuffOptionsPanel")
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
