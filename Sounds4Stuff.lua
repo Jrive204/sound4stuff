@@ -164,13 +164,16 @@ function frame:BuildMenu()
     pTestBtn:SetText("Test Potion")
     pTestBtn:SetScript("OnClick", function() PlayDingSound(Sounds4StuffDB.potionSound) end)
 
-    local category = Settings.RegisterCanvasLayoutCategory(panel, "Sounds4Stuff")
+local category = Settings.RegisterCanvasLayoutCategory(panel, "Sounds4Stuff")
     Settings.RegisterAddOnCategory(category)
+
+    -- Store the exact Category ID so the slash command can use it safely
+    Sounds4StuffCategoryID = category:GetID()
 end
 
 -- Slash Command to open the options menu
-SLASH_SOUNDS4STUFF1 = "/s4s"
-SlashCmdList["SOUNDS4STUFF"] = function()
-    -- This opens the Addon category in the standard Settings menu
-    Settings.OpenToCategory("Sounds4Stuff")
+SLASH_SOUNDSFORSTUFF1 = "/s4s"
+SLASH_SOUNDSFORSTUFF2 = "/sounds4stuff"
+SlashCmdList["SOUNDSFORSTUFF"] = function()
+    Settings.OpenToCategory(Sounds4StuffCategoryID)
 end
