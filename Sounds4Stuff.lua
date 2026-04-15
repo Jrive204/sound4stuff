@@ -167,3 +167,10 @@ function frame:BuildMenu()
     local category = Settings.RegisterCanvasLayoutCategory(panel, "Sounds4Stuff")
     Settings.RegisterAddOnCategory(category)
 end
+
+-- Slash Command to open the options menu
+SLASH_SOUNDS4STUFF1 = "/s4s"
+SlashCmdList["SOUNDS4STUFF"] = function()
+    -- This opens the Addon category in the standard Settings menu
+    Settings.OpenToCategory("Sounds4Stuff")
+end

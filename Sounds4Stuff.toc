@@ -1,8 +1,8 @@
 ## Interface: 120001
 ## Title: Sounds4Stuff
-## Version: 1.0.3
+## Version: 1.0.4
 ## Notes: Plays a sound for stuff.
-## Author: Odios01
+## Author: Odios
 ## SavedVariables: Sounds4StuffDB
 ## IconTexture: Interface\Icons\INV_Jewelry_TrinketPVP_01
 
