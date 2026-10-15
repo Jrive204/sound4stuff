@@ -7,9 +7,9 @@ local frame = CreateFrame("Frame")
 local trinketOnCD = false
 local trackedItemID = nil
 local potionOnCD = false
-local ignoreNextPotDing = false
 local checkTimer = 0
 local categoryID = nil
+local pendingOpenSettings = false
 
 local DEFAULT_POTION_ID = 241289 -- Potion of Recklessness; change with /s4s potion <itemID>
 
@@ -297,10 +297,10 @@ local function OpenSoundBrowser(field)
     soundBrowser:Show()
 end
 
-local function Alert(message, soundID)
-    if not UnitAffectingCombat("player") or UnitIsDeadOrGhost("player") then
-        return
-    end
+-- Trinket alerts stay combat-only; potion ready alerts can fire outside combat.
+local function Alert(message, soundID, allowOutOfCombat)
+    if UnitIsDeadOrGhost("player") then return end
+    if not allowOutOfCombat and not UnitAffectingCombat("player") then return end
 
     PlayDingSound(soundID)
     if Sounds4StuffDB.chatAlert then
@@ -366,13 +366,9 @@ local function CheckPotion(now)
 
     if active then
         potionOnCD = true
-        ignoreNextPotDing = false
     elseif potionOnCD then
         potionOnCD = false
-        if not ignoreNextPotDing then
-            Alert("Combat Potion Ready!", Sounds4StuffDB.potionSound)
-        end
-        ignoreNextPotDing = false
+        Alert("Combat Potion Ready!", Sounds4StuffDB.potionSound, true)
     end
 end
 
@@ -416,7 +412,6 @@ function frame:BuildMenu()
     potCheck:SetScript("OnClick", function(self)
         Sounds4StuffDB.potDing = self:GetChecked()
         potionOnCD = false
-        ignoreNextPotDing = false
         CheckCooldowns()
     end)
 
@@ -481,11 +476,32 @@ function frame:BuildMenu()
     categoryID = category:GetID()
 end
 
+-- Retail 12.x protects Blizzard's Settings panel during combat.
+-- Defer slash-command requests rather than calling the protected API.
+local function OpenSettingsWhenSafe()
+    if not categoryID then
+        print("|cff00ff00[Sounds4Stuff]|r Settings are not ready yet. Try /reload.")
+        return
+    end
+
+    if InCombatLockdown() then
+        if not pendingOpenSettings then
+            print("|cff00ff00[Sounds4Stuff]|r Settings will open when combat ends.")
+        end
+        pendingOpenSettings = true
+        return
+    end
+
+    pendingOpenSettings = false
+    Settings.OpenToCategory(categoryID)
+end
+
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 frame:RegisterEvent("BAG_UPDATE_COOLDOWN")
 frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 frame:RegisterEvent("ENCOUNTER_END")
+frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
@@ -510,9 +526,11 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         self:BuildMenu()
         CheckCooldowns()
-    elseif event == "ENCOUNTER_END" then
-        -- Don't ding as the encounter is ending and combat drops.
-        ignoreNextPotDing = true
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if pendingOpenSettings then
+            OpenSettingsWhenSafe()
+        end
+        CheckCooldowns()
     else
         CheckCooldowns()
     end
@@ -538,7 +556,6 @@ SlashCmdList["SOUNDSFORSTUFF"] = function(msg)
         if numericID and numericID > 0 then
             Sounds4StuffDB.potionItemID = numericID
             potionOnCD = false
-            ignoreNextPotDing = false
             if frame.potionNote then
                 frame.potionNote:SetText("Potion item ID: " .. numericID .. "  |  Change with /s4s potion <itemID>")
             end
@@ -553,7 +570,5 @@ SlashCmdList["SOUNDSFORSTUFF"] = function(msg)
         return
     end
 
-    if categoryID then
-        Settings.OpenToCategory(categoryID)
-    end
+    OpenSettingsWhenSafe()
 end
